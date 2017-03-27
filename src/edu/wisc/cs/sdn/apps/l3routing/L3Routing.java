@@ -371,14 +371,12 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			// the link must be from a switch to a host
 			if (0 == update.getDst())
 			{
-				// TODO: Host is not added when link goes back up...deviceAdded is not called and we need to do from here, getting
-				// null pointer error from host.getValue().toString() because there is no switch connected to this host.
 				if (update.getOperation() == UpdateOperation.PORT_UP)
 				{
 					
 					for (Entry<IDevice, Host> host : this.unconnectedHosts.entrySet())
 					{
-						log.info("Host is: " + host.getValue().getName() +" Update source is: " + update.getSrc());
+//						log.info("Host is: " + host.getValue().getName() +" Update source is: " + update.getSrc());
 //						log.info("Host Port: " + host.getValue().getSwitch().toString());
 //						log.info("Host: " + host.getValue().toString());
 //						log.info("Host Switch ID: " + host.getValue().getSwitch().getId());
@@ -401,51 +399,14 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			// Otherwise, the link is between two switches
 			else
 			{
-				if (update.getOperation() == UpdateOperation.PORT_UP)
-				{
+//				log.info("Switch link added, recalculating rules!");
 					recalculateRulesIfSwitchAdded();
 					log.info(String.format("Link s%s:%d -> s%s:%d updated", 
 						update.getSrc(), update.getSrcPort(),
 						update.getDst(), update.getDstPort()));
-				}
-//				
-//				Map<Long, IOFSwitch> switchList = this.getSwitches();
-//				Collection<Host> hostList = this.getHosts();
-//				
-//				OFInstructionActions action = createOutputInstruction(update.getSrcPort());
-//				for (Host chosenHost : hostList)
-//				{
-//					if (chosenHost.getSwitch() != switchList.get(update.getSrc()))
-//					{
-//						OFMatch match = createMatchCriteria(chosenHost.getIPv4Address());
-//
-//						List<OFInstruction> instructions = new LinkedList<OFInstruction>();
-//						instructions.add(action);
-//						SwitchCommands.installRule(switchList.get(update.getSrc()), table, (short)999, match, instructions);
-//						log.info("Link detected, installing rule for " + chosenHost.getIPv4Address() + " on switch " + update.getSrc());
-//					}
-//				}
+
 			}
 		}
-		
-		/*********************************************************************/
-		/* TODO: Update routing: change routing rules for all hosts          */
-		/*********************************************************************/
-//		Map<Long, IOFSwitch> switchList = this.getSwitches();
-//		for (Long switchDPID : switchList.keySet())
-//		{
-//			Collection<Host> hostList = this.getHosts();
-//			LinkedList<Host> connectedHost = getConnectedHosts(hostList, switchList.get(switchDPID));
-//			for (Host host : connectedHost)
-//			{
-//				OFInstructionActions action = createOutputInstruction(host.getPort());
-//				OFMatch match = createMatchCriteria(host.getIPv4Address(), switchList.get(switchDPID));
-//				List<OFInstruction> instructions = new LinkedList<OFInstruction>();
-//				instructions.add(action);
-//				SwitchCommands.installRule(switchList.get(switchDPID), table, (short)999, match, instructions);
-//				log.info("S"+switchDPID+" Installing rule for host: "+ host.getIPv4Address() + " on port: " + host.getPort() );
-//			}
-//		}
 	}
 	
 	/**
@@ -453,6 +414,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	 */
 	public void recalculateRulesIfSwitchAdded()
 	{
+//		log.info("Switch added, recalculating rules!");
 		Collection<Host> hostList = this.getHosts();
 
 		for (Host host : hostList)
@@ -464,6 +426,9 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	public void recalculateRulesIfHostAdded(IOFSwitch sourceSwitch, Host addedHost)
 	{
 		Map<Long, IOFSwitch> switchList = this.getSwitches();
+		
+		if (sourceSwitch == null)
+			return;
 		
 		HashMap<Long, Long> predecessorMap = BellmanFord(switchList, getLinks(), sourceSwitch.getId());
 		// Go through all switches
@@ -487,13 +452,19 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		while (predecessorList.containsKey(switchDpid) && switchDpid != null)
 		{
 			Long predecessorSwitch = predecessorList.get(switchDpid);
-			log.info("Installing rule to switch S" + destinationSwitch.getId() + " for host :" + IPv4.fromIPv4Address(host.getIPv4Address()));
+			if (predecessorSwitch == null)
+			{
+				break;
+			}
+//			log.info("Installing rule to switch S" + destinationSwitch.getId() + " for host :" + IPv4.fromIPv4Address(host.getIPv4Address()));
 			
 			
 			// Setting up instructions:
 			OFInstructionActions action = null;
 			for (Link link : linksList)
 			{
+//				log.info("link.getDst(): " + link.getDst() + " link.getSrc(): " + link.getSrc());
+//				log.info("switchDPID: " + switchDpid + " predecessorSwitch: " + predecessorSwitch);
 				// Either way, if the link bridges between the current switch and the predecessor, get port and output
 				if ((link.getDst() == switchDpid) && (link.getSrc() == predecessorSwitch))
 				{
