@@ -51,6 +51,11 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
     // Map of hosts to devices
     private Map<IDevice,Host> knownHosts;
 
+	//
+	private Map<Long, int> distance;
+	Map<Long, Long> predecessor;
+	//
+	
 	/**
      * Loads dependencies and initializes data structures.
      */
@@ -84,8 +89,57 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		
 		/*********************************************************************/
 		/* TODO: Initialize variables or perform startup tasks, if necessary */
-		
+		distance = new HashMap<Long, int>;
+		predecessor = new HashMap<Long, Long>;
 		/*********************************************************************/
+	}
+	
+	/**Shortest-Path Algorithm**/
+	//edges contains edges between switches, no hosts involved
+	//The Long is the switch DPID, which I think is what uniquely identifies a switch
+	//TODO: check syntax, whether it's really a HashMap, etc. What is the Collection?
+	public void BellmanFord(Map<Long, IOFSwitch> switches, Collection<Link> links, Long src)
+	{
+		//get switches
+		ArrayList<Long> switches = new ArrayList<Long>();
+		for (Long sw : switches.keySet)
+		{
+			switches.add(sw);
+		}
+		
+		//get links between switches
+		ArrayList<Link> edges = new ArrayList<Link>();
+		for (Link link : links.keySet) //?????
+		{
+			if () //only add if both ends of a link are switches
+				edges.add(link);
+		}
+		
+		// Step 1: initialize graph
+		for (int i = 0; i < switches.size(); i++)
+		{
+			distance.put(switches.get(i), -1); //-1 represents infinity
+			predecessor.put(switches.get(i), null);
+		}
+		distance.put(src, 0);
+		
+		// Step 2: relax edges repeatedly
+		for (int j = 0; j < switches.size() - 1; j++) 
+		{
+			for (int k = 0; k < edges.size(); k++)
+			{
+				Link e = edges.get(k);
+				Long u = e.getSrc();
+				Long v = e.getDst();
+				if (distance.get(u) + 1 < distance.get(v))
+				{
+					distance.put(v, distance.get(u) + 1);
+					predecessor.put(v, u);
+				}
+			}
+		}
+
+   return;
 	}
 	
     /**
@@ -138,7 +192,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		Host host = this.knownHosts.get(device);
 		if (null == host)
 		{ return; }
-		this.knownHosts.remove(host);
+		this.knownHosts.remove(device);
 		
 		log.info(String.format("Host %s is no longer attached to a switch", 
 				host.getName()));
