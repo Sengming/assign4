@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.lang.Integer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 
 	//
 	private Map<Long, int> distance;
-	Map<Long, Long> predecessor;
+	private Map<Long, Long> predecessor;
 	//
 	
 	/**
@@ -89,8 +90,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		
 		/*********************************************************************/
 		/* TODO: Initialize variables or perform startup tasks, if necessary */
-		distance = new HashMap<Long, int>;
-		predecessor = new HashMap<Long, Long>;
+
 		/*********************************************************************/
 	}
 	
@@ -100,6 +100,8 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	//TODO: check syntax, whether it's really a HashMap, etc. What is the Collection?
 	public void BellmanFord(Map<Long, IOFSwitch> switches, Collection<Link> links, Long src)
 	{
+		distance = new HashMap<Long, int>;
+		predecessor = new HashMap<Long, Long>;
 		//get switches
 		ArrayList<Long> switches = new ArrayList<Long>();
 		for (Long sw : switches.keySet)
@@ -111,14 +113,14 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		ArrayList<Link> edges = new ArrayList<Link>();
 		for (Link link : links.keySet) //?????
 		{
-			if () //only add if both ends of a link are switches
+			if () //TODO: only add if both ends of a link are switches
 				edges.add(link);
 		}
 		
 		// Step 1: initialize graph
 		for (int i = 0; i < switches.size(); i++)
 		{
-			distance.put(switches.get(i), -1); //-1 represents infinity
+			distance.put(switches.get(i), MAX_VALUE);
 			predecessor.put(switches.get(i), null);
 		}
 		distance.put(src, 0);
