@@ -54,8 +54,8 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
     private Map<IDevice,Host> knownHosts;
 
 	//
-	private Map<Long, Integer> distance;
-	private Map<Long, Long> predecessor;
+//	private Map<Long, Integer> distance;
+//	private Map<Long, Long> predecessor;
 	//
 	
 	/**
@@ -94,15 +94,26 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 
 		/*********************************************************************/
 	}
+//	
+//	public class LinkPackage
+//	{
+//		public LinkPackage(HashMap<Long, Integer> dist, HashMap<Long, Long> pred)
+//		{
+//			distance = dist;
+//			predecessor = pred;
+//		}
+//		public HashMap<Long, Integer> distance;
+//		public HashMap<Long, Long> predecessor;
+//	}
 	
 	/**Shortest-Path Algorithm**/
 	//edges contains edges between switches, no hosts involved
 	//The Long is the switch DPID, which I think is what uniquely identifies a switch
 	//TODO: check syntax, whether it's really a HashMap, etc. What is the Collection?
-	public void BellmanFord(Map<Long, IOFSwitch> switches, Collection<Link> links, Long src)
+	public HashMap<Long, Long> BellmanFord(Map<Long, IOFSwitch> switches, Collection<Link> links, Long src)
 	{
-		distance = new HashMap<Long, Integer>();
-		predecessor = new HashMap<Long, Long>();
+		HashMap<Long, Integer> distance = new HashMap<Long, Integer>();
+		HashMap<Long, Long> predecessor = new HashMap<Long, Long>();
 		//get switches
 		ArrayList<Long> switchList = new ArrayList<Long>();
 		for (Long sw : switches.keySet())
@@ -148,7 +159,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			}
 		}
 
-   return;
+   return predecessor;
 	}
 	
     /**
@@ -298,7 +309,6 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		
 		/*********************************************************************/
 		/* TODO: Update routing: change routing rules for all hosts          */
-		
 		/*********************************************************************/
 	}
 
