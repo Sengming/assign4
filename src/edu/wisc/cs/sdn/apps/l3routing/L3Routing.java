@@ -3,6 +3,7 @@ package edu.wisc.cs.sdn.apps.l3routing;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,7 +54,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
     private Map<IDevice,Host> knownHosts;
 
 	//
-	private Map<Long, int> distance;
+	private Map<Long, Integer> distance;
 	private Map<Long, Long> predecessor;
 	//
 	
@@ -100,33 +101,39 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	//TODO: check syntax, whether it's really a HashMap, etc. What is the Collection?
 	public void BellmanFord(Map<Long, IOFSwitch> switches, Collection<Link> links, Long src)
 	{
-		distance = new HashMap<Long, int>;
-		predecessor = new HashMap<Long, Long>;
+		distance = new HashMap<Long, Integer>();
+		predecessor = new HashMap<Long, Long>();
 		//get switches
-		ArrayList<Long> switches = new ArrayList<Long>();
-		for (Long sw : switches.keySet)
+		ArrayList<Long> switchList = new ArrayList<Long>();
+		for (Long sw : switches.keySet())
 		{
-			switches.add(sw);
+			switchList.add(sw);
 		}
 		
 		//get links between switches
 		ArrayList<Link> edges = new ArrayList<Link>();
-		for (Link link : links.keySet) //?????
+		for (Link link : links) //?????
 		{
-			if () //TODO: only add if both ends of a link are switches
+			long linkSource = link.getSrc();
+			long linkDest = link.getDst();
+			
+			if (switchList.contains(linkSource) && switchList.contains(linkDest))
+			{
 				edges.add(link);
+			}
+			
 		}
 		
 		// Step 1: initialize graph
-		for (int i = 0; i < switches.size(); i++)
+		for (int i = 0; i < switchList.size(); i++)
 		{
-			distance.put(switches.get(i), MAX_VALUE);
-			predecessor.put(switches.get(i), null);
+			distance.put(switchList.get(i), Integer.MAX_VALUE);
+			predecessor.put(switchList.get(i), null);
 		}
 		distance.put(src, 0);
 		
 		// Step 2: relax edges repeatedly
-		for (int j = 0; j < switches.size() - 1; j++) 
+		for (int j = 0; j < switchList.size() - 1; j++) 
 		{
 			for (int k = 0; k < edges.size(); k++)
 			{
@@ -179,7 +186,6 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			
 			/*****************************************************************/
 			/* TODO: Update routing: add rules to route to new host          */
-			
 			/*****************************************************************/
 		}
 	}
