@@ -364,8 +364,9 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	{
 		for (LDUpdate update : updateList)
 		{
-//			log.info(update.toString());
+			log.info(update.toString());
 			log.info(update.getOperation().toString());
+			
 			// If we only know the switch & port for one end of the link, then
 			// the link must be from a switch to a host
 			if (0 == update.getDst())
@@ -377,19 +378,18 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 					
 					for (Entry<IDevice, Host> host : this.unconnectedHosts.entrySet())
 					{
-	//					log.info("Host is: " + host.getName() +" Update source is: " + update.getSrc());
-						log.info("Host: " + host.getValue().toString());
-						log.info("Host Switch ID: " + host.getValue().getSwitch().getId());
-						if (host.getValue().getSwitch().getId() == update.getSrc())
-						{
-							OFInstructionActions action = createOutputInstruction(host.getValue().getPort());
-							OFMatch match = createMatchCriteria(host.getValue().getIPv4Address());
-							List<OFInstruction> instructions = new LinkedList<OFInstruction>();
-							instructions.add(action);
-							SwitchCommands.installRule(host.getValue().getSwitch(), table, (short)999, match, instructions);
-							// Install rule on other switches:
-							recalculateRulesIfHostAdded(host.getValue().getSwitch(), host.getValue());
-						}
+						log.info("Host is: " + host.getValue().getName() +" Update source is: " + update.getSrc());
+//						log.info("Host Port: " + host.getValue().getSwitch().toString());
+//						log.info("Host: " + host.getValue().toString());
+//						log.info("Host Switch ID: " + host.getValue().getSwitch().getId());
+						OFInstructionActions action = createOutputInstruction(update.getSrcPort());
+						OFMatch match = createMatchCriteria(host.getValue().getIPv4Address());
+						List<OFInstruction> instructions = new LinkedList<OFInstruction>();
+						instructions.add(action);
+						SwitchCommands.installRule(getSwitches().get(update.getSrc()), table, (short)999, match, instructions);
+						// Install rule on other switches:
+						recalculateRulesIfHostAdded(getSwitches().get(update.getSrc()), host.getValue());
+						
 						this.knownHosts.put(host.getKey(), host.getValue());
 						this.unconnectedHosts.remove(host.getKey());
 					}
