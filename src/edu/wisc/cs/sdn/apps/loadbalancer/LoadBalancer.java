@@ -4,17 +4,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
+import org.openflow.protocol.OFMatch;
+import org.openflow.protocol.OFMatchField;
 import org.openflow.protocol.OFMessage;
+import org.openflow.protocol.OFOXMFieldType;
 import org.openflow.protocol.OFPacketIn;
+//import org.openflow.protocol.OFPortConfigTest;
+import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFType;
-
+import org.openflow.protocol.action.OFAction;
+import org.openflow.protocol.action.OFActionOutput;
+import org.openflow.protocol.instruction.OFInstructionGotoTable;
+import org.openflow.protocol.instruction.OFInstruction;
+import org.openflow.protocol.instruction.OFInstructionActions;
+import org.openflow.protocol.instruction.OFInstructionApplyActions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.wisc.cs.sdn.apps.util.ArpServer;
-
+import edu.wisc.cs.sdn.apps.util.SwitchCommands;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import net.floodlightcontroller.core.IOFMessageListener;
@@ -35,6 +47,10 @@ import net.floodlightcontroller.util.MACAddress;
 public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		IOFMessageListener
 {
+	public static final short LOW_PRIORITY_RULE = 1;
+//	public static final short MID_PRIORITY_RULE;
+	public static final short HIGH_PRIORITY_RULE = 2;
+	
 	public static final String MODULE_NAME = LoadBalancer.class.getSimpleName();
 	
 	private static final byte TCP_FLAG_SYN = 0x02;
@@ -124,15 +140,76 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		log.info(String.format("Switch s%d added", switchId));
 		
 		/*********************************************************************/
-		/* TODO: Install rules to send:                                      */
+		/* Install rules to send:                                      */
 		/*       (1) packets from new connections to each virtual load       */
 		/*       balancer IP to the controller                               */
-		/*       (2) ARP packets to the controller, and                      */
+		
+//		 Go through all the instances, setting rules on switches to route packets if sent to virtual IP
+		for (Integer balancerIp : instances.keySet())
+		{
+			OFMatch match = createIpMatchCriteria(balancerIp);
+			
+			OFInstructionActions instruction = createOutputInstruction(OFPort.OFPP_CONTROLLER.getValue());
+			List<OFInstruction> instructionList = new LinkedList<OFInstruction>();
+			instructionList.add(instruction);
+			SwitchCommands.installRule(sw, table, LOW_PRIORITY_RULE, match, instructionList);	
+			
+		}
+		
+		/*       (2) ARP packets to the controller                           */
+		
+		for (Integer balancerIp : instances.keySet())
+		{
+			OFMatch match = createArpMatchCriteria(balancerIp);
+			
+			OFInstructionActions instruction = createOutputInstruction(OFPort.OFPP_CONTROLLER.getValue());
+			List<OFInstruction> instructionList = new LinkedList<OFInstruction>();
+			instructionList.add(instruction);
+			SwitchCommands.installRule(sw, table, LOW_PRIORITY_RULE, match, instructionList);	
+			
+		}
+		
 		/*       (3) all other packets to the next rule table in the switch  */
 		
+		OFInstructionGotoTable instruction = new OFInstructionGotoTable((byte)1);
+		List<OFInstruction> instructionList = new LinkedList<OFInstruction>();
+		instructionList.add(instruction);
+		OFMatch matchCriteria = new OFMatch();
+		SwitchCommands.installRule(sw, table, LOW_PRIORITY_RULE, matchCriteria, instructionList);
+		
 		/*********************************************************************/
+		
+
+		
 	}
 	
+	protected OFInstructionActions createOutputInstruction(int port)
+	{
+		OFActionOutput outputAction = new OFActionOutput(port);
+		LinkedList<OFAction> actionList = new LinkedList<OFAction>();
+		actionList.add(outputAction);
+		OFInstructionApplyActions retInstruction = new OFInstructionApplyActions(actionList);
+		
+		return retInstruction;
+	}
+	
+	protected OFMatch createIpMatchCriteria(Integer ipToMatch)
+	{
+		OFMatch matchCriteria = new OFMatch();
+		OFMatchField matchField = new OFMatchField(OFOXMFieldType.IPV4_DST, ipToMatch);
+		matchCriteria.setDataLayerType(OFMatch.ETH_TYPE_IPV4);
+		matchCriteria.setField(matchField);
+		return matchCriteria;
+	}
+	
+	protected OFMatch createArpMatchCriteria(Integer ipToMatch)
+	{
+		OFMatch matchCriteria = new OFMatch();
+		OFMatchField matchField = new OFMatchField(OFOXMFieldType.IPV4_DST, ipToMatch);
+		matchCriteria.setDataLayerType(OFMatch.ETH_TYPE_ARP);
+		matchCriteria.setField(matchField);
+		return matchCriteria;
+	}
 	/**
 	 * Handle incoming packets sent from switches.
 	 * @param sw switch on which the packet was received
@@ -161,7 +238,14 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		/*       ignore all other packets                                    */
 		
 		/*********************************************************************/
-
+		if (ethPkt.getEtherType() == Ethernet.TYPE_ARP)
+		{
+			log.info("Heluu, load balancer here, I've just received an ARP packet from: "+ ethPkt.getSourceMAC().toString());
+		}
+		else
+		{
+			log.info("I have just been sent something I'm not handling yet! It's not an ARP packet!!!");
+		}
 		
 		// We don't care about other packets
 		return Command.CONTINUE;
