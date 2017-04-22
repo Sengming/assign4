@@ -194,13 +194,18 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		
 	}
 	
-	protected OFInstructionActions createSetIpMacInstruction(int ip, byte[] mac)
+	protected OFInstructionActions createSetIpMacInstruction(int ip, byte[] mac, int srcip, byte[] srcmac)
 	{
 		OFActionSetField setIp = new OFActionSetField(OFOXMFieldType.IPV4_DST, ip);
 		OFActionSetField setMac = new OFActionSetField(OFOXMFieldType.ETH_DST, mac);
+		
+		OFActionSetField setsrcIp = new OFActionSetField(OFOXMFieldType.IPV4_SRC, srcip);
+		OFActionSetField setsrcMac = new OFActionSetField(OFOXMFieldType.ETH_SRC, srcmac);
 		LinkedList<OFAction> actionList = new LinkedList<OFAction>();
 		actionList.add(setMac);
 		actionList.add(setIp);
+		actionList.add(setsrcIp);
+		actionList.add(setsrcMac);
 		OFInstructionApplyActions retInstruction = new OFInstructionApplyActions(actionList);
 		
 		return retInstruction;
@@ -359,12 +364,12 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			LinkedList<OFMatch> matchList = createIPMacToFroMatchCriteria(ethPacket, nextIp);
 			
 			// Instructions for packets from Client to server:	
-			OFInstruction destinstruction = createSetIpMacInstruction(nextIp, nextMac);
-			OFInstruction sourceinstruction = createSetIpMacSrcInstruction(vBalancer.getVirtualIP(), vBalancer.getVirtualMAC());
+			OFInstruction destinstruction = createSetIpMacInstruction(nextIp, nextMac, vBalancer.getVirtualIP(), vBalancer.getVirtualMAC());
+//			OFInstruction sourceinstruction = createSetIpMacSrcInstruction(vBalancer.getVirtualIP(), vBalancer.getVirtualMAC());
 			List<OFInstruction> instructionList = new LinkedList<OFInstruction>();
 			OFInstructionGotoTable clientGoToTable = new OFInstructionGotoTable(L3Routing.table);
 			instructionList.add(destinstruction);
-			instructionList.add(sourceinstruction);
+//			instructionList.add(sourceinstruction);
 			instructionList.add(clientGoToTable);
 			if(SwitchCommands.installRule(sw, table, HIGH_PRIORITY_RULE, matchList.getFirst(), instructionList, (short)0, IDLE_TIMEOUT))
 			{
@@ -372,13 +377,13 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			}
 			
 			// Instructions from Server to Client:
-			OFInstruction serverToClientInstruction = createSetIpMacInstruction(ipPacket.getSourceAddress(), ethPacket.getSourceMACAddress());
-			OFInstruction serverToClientLBInstruction = createSetIpMacSrcInstruction(vBalancer.getVirtualIP(), vBalancer.getVirtualMAC());
+			OFInstruction serverToClientInstruction = createSetIpMacInstruction(ipPacket.getSourceAddress(), ethPacket.getSourceMACAddress(), vBalancer.getVirtualIP(), vBalancer.getVirtualMAC());
+//			OFInstruction serverToClientLBInstruction = createSetIpMacSrcInstruction(vBalancer.getVirtualIP(), vBalancer.getVirtualMAC());
 			List<OFInstruction> serverToClientInsList = new LinkedList<OFInstruction>();
 			OFInstructionGotoTable serverGoToTable = new OFInstructionGotoTable(L3Routing.table);
 			serverToClientInsList.add(serverToClientInstruction);
 			serverToClientInsList.add(serverGoToTable);
-			serverToClientInsList.add(serverToClientLBInstruction);
+//			serverToClientInsList.add(serverToClientLBInstruction);
 			if(SwitchCommands.installRule(sw, table, HIGH_PRIORITY_RULE, matchList.getLast(), serverToClientInsList, (short)0, IDLE_TIMEOUT))
 			{
 				log.info("Successfully installed host rules!");
