@@ -300,13 +300,16 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			host = new Host(device, this.floodlightProv);
 			this.knownHosts.put(device, host);
 			
-			OFInstructionActions action = createOutputInstruction(host.getPort());
-			OFMatch match = createMatchCriteria(host.getIPv4Address());
-			List<OFInstruction> instructions = new LinkedList<OFInstruction>();
-			instructions.add(action);
-			SwitchCommands.installRule(host.getSwitch(), table, (short)999, match, instructions);
-			// Install rule on other switches:
-			recalculateRulesIfHostAdded(host.getSwitch(), host);
+			if (host!=null)
+			{
+				OFInstructionActions action = createOutputInstruction(host.getPort());
+				OFMatch match = createMatchCriteria(host.getIPv4Address());
+				List<OFInstruction> instructions = new LinkedList<OFInstruction>();
+				instructions.add(action);
+				SwitchCommands.installRule(host.getSwitch(), table, (short)999, match, instructions);
+				// Install rule on other switches:
+				recalculateRulesIfHostAdded(host.getSwitch(), host);
+			}
 		}
 		
 		if (!host.isAttachedToSwitch())
