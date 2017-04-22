@@ -450,7 +450,8 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 					// Now we need to differntiate between first SYN and second, after rules have been installed, so:
 					if (instances.get(ipPkt.getDestinationAddress()) != null)
 					{
-						installNewTcpConnectionRules(ethPkt, sw);					
+						installNewTcpConnectionRules(ethPkt, sw);			
+						return Command.STOP;
 					}
 					else
 					{
