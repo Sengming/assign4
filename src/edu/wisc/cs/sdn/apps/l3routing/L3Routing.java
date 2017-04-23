@@ -300,7 +300,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			host = new Host(device, this.floodlightProv);
 			this.knownHosts.put(device, host);
 			
-			if (host!=null)
+			if (host.getPort()!=null)
 			{
 				OFInstructionActions action = createOutputInstruction(host.getPort());
 				OFMatch match = createMatchCriteria(host.getIPv4Address());
